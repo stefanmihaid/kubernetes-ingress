@@ -1,9 +1,8 @@
 import pytest
 from settings import TEST_DATA, DEPLOYMENTS
 from suite.fixtures import PublicEndpoint
-from suite.resources_utils import create_items_from_yaml, delete_items_from_yaml, \
-    create_example_app, delete_common_app, wait_until_all_pods_are_ready, replace_configmap_from_yaml, \
-    get_ingress_nginx_template_conf, get_first_pod_name
+from suite.resources_utils import create_items_from_yaml, delete_items_from_yaml, replace_configmap_from_yaml, \
+    get_ingress_nginx_template_conf, get_first_pod_name, wait_before_test
 from suite.yaml_utils import get_first_ingress_host_from_yaml, get_names_from_yaml
 
 
@@ -35,13 +34,12 @@ def custom_annotations_setup(request, kube_apis, ingress_controller_prerequisite
                                 ingress_controller_prerequisites.config_map['metadata']['name'],
                                 ingress_controller_prerequisites.namespace,
                                 f"{TEST_DATA}/custom-annotations/{ing_type}/nginx-config.yaml")
-    print("------------------------- Deploy Custom Annotations Example -----------------------------------")
+    print("------------------------- Deploy Custom Annotations Ingress -----------------------------------")
     ing_src = f"{TEST_DATA}/custom-annotations/{ing_type}/annotations-ingress.yaml"
     create_items_from_yaml(kube_apis, ing_src, test_namespace)
     host = get_first_ingress_host_from_yaml(ing_src)
     ingress_name = get_names_from_yaml(ing_src)[0]
-    create_example_app(kube_apis, "simple", test_namespace)
-    wait_until_all_pods_are_ready(kube_apis.v1, test_namespace)
+    wait_before_test(1)
 
     ic_pod_name = get_first_pod_name(kube_apis.v1, ingress_controller_prerequisites.namespace)
 
@@ -52,7 +50,6 @@ def custom_annotations_setup(request, kube_apis, ingress_controller_prerequisite
                                     ingress_controller_prerequisites.namespace,
                                     f"{DEPLOYMENTS}/common/nginx-config.yaml")
         delete_items_from_yaml(kube_apis, ing_src, test_namespace)
-        delete_common_app(kube_apis, "simple", test_namespace)
 
     request.addfinalizer(fin)
 
@@ -65,11 +62,13 @@ def custom_annotations_setup(request, kube_apis, ingress_controller_prerequisite
                              pytest.param("standard",
                                           ["# This is TEST configuration for custom-annotations-ingress/",
                                            "# Insert config for test-split-feature: 192.168.1.1;",
+                                           "# Insert config for test-split-feature: some-ip;",
                                            "# Insert config for feature A if the annotation is set",
                                            "# Print the value assigned to the annotation: 512"], id="standard-ingress"),
                              pytest.param("mergeable",
                                           ["# This is TEST configuration for custom-annotations-ingress-master/",
                                            "# Insert config for test-split-feature: master.ip;",
+                                           "# Insert config for test-split-feature: master;",
                                            "# Insert config for test-split-feature minion: minion1;",
                                            "# Insert config for test-split-feature minion: minion2;",
                                            "# Insert config for feature A if the annotation is set",

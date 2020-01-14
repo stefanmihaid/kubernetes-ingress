@@ -6,7 +6,7 @@ metadata:
 data:
   ingress-template: |
     # This is TEST configuration for {{$.Ingress.Name}}/{{$.Ingress.Namespace}}
-    {{range $ip := split (index $.Ingress.Annotations "custom.nginx.org/test-split-feature") "--"}}
+    {{range $ip := split (index $.Ingress.Annotations "custom.nginx.org/test-split-feature") ","}}
     # Insert config for test-split-feature: {{trim $ip}};
     {{end}}
     {{if index $.Ingress.Annotations "custom.nginx.org/feature-a"}}
